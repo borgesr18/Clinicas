@@ -9,23 +9,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/2.1.5/css/dataTables.dataTables.min.css" />
   <style>
-    :root { --bg: #0b1020; --fg: #e8ecf1; --muted: #9aa4b2; --accent: #3b82f6; --card: #121a32; --chip: #1b2547; }
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #22c55e; --card: #111827; --chip: #1f2937; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background: var(--bg); color: var(--fg); }
     header { padding: 24px 20px 8px; }
     h1 { margin: 0 0 8px; font-size: 24px; }
     .meta { color: var(--muted); font-size: 12px; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #223; padding: 12px 20px 0; position: sticky; top: 0; background: linear-gradient(180deg, rgba(11,16,32,0.95), rgba(11,16,32,0.85)); backdrop-filter: blur(6px); z-index: 2; }
-    .tab-btn { appearance: none; border: 1px solid #223; background: var(--chip); color: var(--fg); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: 600; font-size: 13px; opacity: 0.85; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #2a364a; padding: 12px 20px 0; position: sticky; top: 0; background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85)); backdrop-filter: blur(6px); z-index: 2; }
+    .tab-btn { appearance: none; border: 1px solid #2a364a; background: var(--chip); color: var(--fg); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: 600; font-size: 13px; opacity: 0.9; }
     .tab-btn[aria-selected="true"] { background: var(--card); border-bottom-color: var(--card); color: #fff; opacity: 1; }
     .container { padding: 16px 20px 40px; }
-    .card { background: var(--card); border: 1px solid #223; border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+    .card { background: var(--card); border: 1px solid #2a364a; border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
     .sheet { display: none; }
     .sheet.active { display: block; }
-    table.dataTable thead th { background: #1a2344; color: #dce3ee; border-bottom: none; }
-    table.dataTable tbody tr:hover { background: rgba(59,130,246,0.08); }
-    .dt-search input { background: #0e1632; color: var(--fg); border: 1px solid #223; }
-    .dt-length select { background: #0e1632; color: var(--fg); border: 1px solid #223; }
+    table.dataTable thead th { background: color-mix(in oklab, var(--accent) 25%, #0b3d2c); color: #ecfdf5; border-bottom: none; }
+    table.dataTable tbody tr:hover { background: color-mix(in oklab, var(--accent) 20%, transparent); }
+    .dt-search input { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
+    .dt-length select { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
     .footer { color: var(--muted); font-size: 12px; padding: 16px 20px 40px; }
   </style>
 </head>
@@ -76,17 +76,78 @@
       });
     });
 
-    document.addEventListener('DOMContentLoaded', function () {
-      {% for sheet in sheets %}
-      new DataTable('#table-{{ loop.index0 }}', {
-        pageLength: 25,
-        lengthMenu: [10, 25, 50, 100],
-        ordering: true,
-        searching: true,
-        deferRender: true,
-        language: { url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json' },
+    function formatCurrencyBR(value) {
+      try {
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      } catch (_) {
+        return value;
+      }
+    }
+
+    function tryParseNumber(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+      // Accept forms like 123, 123.45, 123456.78
+      if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+        const n = Number(trimmed);
+        return Number.isFinite(n) ? n : null;
+      }
+      // Accept forms like 1.234.567,89 (convert to 1234567.89)
+      if (/^-?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(trimmed)) {
+        const normalized = trimmed.replaceAll('.', '').replace(',', '.');
+        const n = Number(normalized);
+        return Number.isFinite(n) ? n : null;
+      }
+      return null;
+    }
+
+    function formatIfDateLike(text) {
+      const t = text.trim();
+      // YYYY-MM-DD ... -> DD/MM/YYYY
+      let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+      // DD/MM/YYYY ... -> keep only date
+      m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      if (m) return `${m[1]}/${m[2]}/${m[3]}`;
+      return text;
+    }
+
+    function prepareTable(table) {
+      if (!table) return;
+      // Format header dates
+      table.querySelectorAll('thead th').forEach(th => {
+        th.textContent = formatIfDateLike(th.textContent);
       });
-      {% endfor %}
+      // Format numeric cells as BRL and set data-order for proper sorting
+      table.querySelectorAll('tbody td').forEach(td => {
+        const original = td.textContent;
+        const n = tryParseNumber(original);
+        if (n !== null) {
+          td.setAttribute('data-order', String(n));
+          td.textContent = formatCurrencyBR(n);
+        } else {
+          // Also format any pure date strings inside body cells
+          const maybeDate = formatIfDateLike(original);
+          if (maybeDate !== original) td.textContent = maybeDate;
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('table.display').forEach((tbl) => {
+        prepareTable(tbl);
+      });
+      // Initialize DataTables after formatting
+      document.querySelectorAll('table.display').forEach((tbl) => {
+        new DataTable(tbl, {
+          pageLength: 25,
+          lengthMenu: [10, 25, 50, 100],
+          ordering: true,
+          searching: true,
+          deferRender: true,
+          language: { url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json' },
+        });
+      });
     });
   </script>
 </body>
