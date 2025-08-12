@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.1.5/css/dataTables.dataTables.min.css" />
+  <style>
+    :root { --bg: #0b1020; --fg: #e8ecf1; --muted: #9aa4b2; --accent: #3b82f6; --card: #121a32; --chip: #1b2547; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background: var(--bg); color: var(--fg); }
+    header { padding: 24px 20px 8px; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .meta { color: var(--muted); font-size: 12px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #223; padding: 12px 20px 0; position: sticky; top: 0; background: linear-gradient(180deg, rgba(11,16,32,0.95), rgba(11,16,32,0.85)); backdrop-filter: blur(6px); z-index: 2; }
+    .tab-btn { appearance: none; border: 1px solid #223; background: var(--chip); color: var(--fg); padding: 8px 12px; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: 600; font-size: 13px; opacity: 0.85; }
+    .tab-btn[aria-selected="true"] { background: var(--card); border-bottom-color: var(--card); color: #fff; opacity: 1; }
+    .container { padding: 16px 20px 40px; }
+    .card { background: var(--card); border: 1px solid #223; border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+    .sheet { display: none; }
+    .sheet.active { display: block; }
+    table.dataTable thead th { background: #1a2344; color: #dce3ee; border-bottom: none; }
+    table.dataTable tbody tr:hover { background: rgba(59,130,246,0.08); }
+    .dt-search input { background: #0e1632; color: var(--fg); border: 1px solid #223; }
+    .dt-length select { background: #0e1632; color: var(--fg); border: 1px solid #223; }
+    .footer { color: var(--muted); font-size: 12px; padding: 16px 20px 40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ title }}</h1>
+    <div class="meta">Atualizado em {{ generated_at }} — {{ sheet_count }} abas</div>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Abas da planilha">
+    {% for sheet in sheets %}
+    <button class="tab-btn" role="tab" id="tab-{{ loop.index0 }}" aria-controls="panel-{{ loop.index0 }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ sheet.name }}</button>
+    {% endfor %}
+  </nav>
+  <div class="container">
+    {% for sheet in sheets %}
+    <section id="panel-{{ loop.index0 }}" class="sheet card {{ 'active' if loop.first else '' }}" role="tabpanel" aria-labelledby="tab-{{ loop.index0 }}">
+      <table id="table-{{ loop.index0 }}" class="display" style="width:100%">
+        <thead>
+          <tr>
+            {% for h in sheet.headers %}<th>{{ h }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in sheet.rows %}
+          <tr>
+            {% for cell in row %}<td>{{ cell }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endfor %}
+  </div>
+  <div class="footer">
+    Gerado automaticamente a partir do arquivo {{ source_name }}.
+  </div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.1.5/js/dataTables.min.js"></script>
+  <script>
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.sheet');
+    tabButtons.forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.setAttribute('aria-selected', 'false'));
+        btn.setAttribute('aria-selected', 'true');
+        panels.forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + idx).classList.add('active');
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for sheet in sheets %}
+      new DataTable('#table-{{ loop.index0 }}', {
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        ordering: true,
+        searching: true,
+        deferRender: true,
+        language: { url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json' },
+      });
+      {% endfor %}
+    });
+  </script>
+</body>
+</html>
