@@ -125,6 +125,34 @@ def add_table(ws, header_row: int, min_col: int, max_col: int, max_row: int) -> 
         unique_name = f"{table_name}_{suffix}"
         suffix += 1
 
+    # If there are merged cells on the header row, unmerge them to allow editing header values
+    merged_to_unmerge = []
+    for cell_range in list(ws.merged_cells.ranges):
+        if cell_range.min_row <= header_row <= cell_range.max_row:
+            # Only consider ranges that intersect the target columns
+            if cell_range.max_col >= min_col and cell_range.min_col <= max_col:
+                merged_to_unmerge.append(cell_range.coord)
+    for coord in merged_to_unmerge:
+        ws.unmerge_cells(coord)
+
+    # Coerce header row values to strings and make them unique to satisfy openpyxl
+    seen_headers = set()
+    for c in range(min_col, max_col + 1):
+        cell = ws.cell(row=header_row, column=c)
+        value = cell.value
+        if value is None or (isinstance(value, str) and value.strip() == ''):
+            header_text = f"Coluna_{get_column_letter(c)}"
+        else:
+            header_text = str(value)
+        # ensure uniqueness
+        base_header = header_text
+        dedup_idx = 2
+        while header_text in seen_headers:
+            header_text = f"{base_header} ({dedup_idx})"
+            dedup_idx += 1
+        seen_headers.add(header_text)
+        cell.value = header_text
+
     ref = f"{get_column_letter(min_col)}{header_row}:{get_column_letter(max_col)}{max_row}"
     try:
         table = Table(displayName=unique_name, ref=ref)
