@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/2.1.5/css/dataTables.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.1/css/buttons.dataTables.min.css" />
   <style>
-    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #22c55e; --card: #111827; --chip: #1f2937; }
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #22c55e; --accent-2: #06b6d4; --danger: #ef4444; --card: #111827; --chip: #1f2937; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background: var(--bg); color: var(--fg); }
     header { padding: 24px 20px 8px; }
@@ -22,17 +23,42 @@
     .card { background: var(--card); border: 1px solid #2a364a; border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
     .sheet { display: none; }
     .sheet.active { display: block; }
+    .sheet-index { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+    .sheet-index .chip { background: var(--chip); border: 1px solid #2a364a; color: var(--fg); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .sheet-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+    .sheet-summary .pill { display: inline-flex; align-items: center; gap: 6px; background: #0b1220; border: 1px solid #2a364a; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); }
+
     table.dataTable thead th { background: color-mix(in oklab, var(--accent) 25%, #0b3d2c); color: #ecfdf5; border-bottom: none; }
     table.dataTable tbody tr:hover { background: color-mix(in oklab, var(--accent) 20%, transparent); }
     .dt-search input { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
     .dt-length select { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
     .footer { color: var(--muted); font-size: 12px; padding: 16px 20px 40px; }
+
+    /* Primeira coluna fixa (sticky) */
+    table.dataTable thead th:first-child, table.dataTable tbody td:first-child { position: sticky; left: 0; background: var(--card); z-index: 2; }
+    table.dataTable thead th:first-child { z-index: 3; }
+
+    /* Destaques de linhas/valores especiais */
+    tr.section-header td { background: #0b1b2f; color: #93c5fd; font-weight: 600; border-top: 1px solid #1e293b; }
+    tr.total-row td { background: #0f2f25; color: #a7f3d0; font-weight: 700; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.paid { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+    .badge.overdue { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.35); }
+
+    /* DataTables ajustes de layout */
+    div.dt-container { overflow-x: auto; }
+
+    /* Destaque ao navegar pelo índice */
+    .row-flash { outline: 2px solid var(--accent-2); box-shadow: 0 0 0 2px rgba(6,182,212,0.2) inset; }
+    @keyframes flashFade { from { background: rgba(6,182,212,0.1); } to { background: transparent; } }
+    .row-flash { animation: flashFade 2.2s ease-out; }
   </style>
 </head>
 <body>
   <header>
     <h1>Planilha SOSrim — Consulta</h1>
-    <div class="meta">Atualizado em 12/08/2025 16:09 — 4 abas</div>
+    <div class="meta">Atualizado em 12/08/2025 16:29 — 4 abas</div>
   </header>
   <nav class="tabs" role="tablist" aria-label="Abas da planilha">
     
@@ -48,6 +74,8 @@
   <div class="container">
     
     <section id="panel-0" class="sheet card active" role="tabpanel" aria-labelledby="tab-0">
+      <div class="sheet-index" id="index-0"></div>
+      <div class="sheet-summary" id="summary-0"></div>
       <table id="table-0" class="display" style="width:100%">
         <thead>
           <tr>
@@ -220,11 +248,677 @@
             <td>VR Alimentação  feira SOS</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>5000</td><td></td><td>5000</td>
           </tr>
           
+          <tr>
+            <td>Combustivel</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>990</td><td></td><td>990</td>
+          </tr>
+          
+          <tr>
+            <td>Vale Transporte </td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>2200</td><td></td><td>2200</td>
+          </tr>
+          
+          <tr>
+            <td>Bradesco Odonto </td><td>Comp. 07/2025 (Venc. 21/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>935.3</td><td>935.3</td><td>935.3</td>
+          </tr>
+          
+          <tr>
+            <td>Seguro de vida</td><td>Comp. 08/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>909.04</td><td>909.04</td><td>909.04</td>
+          </tr>
+          
+          <tr>
+            <td>Seguro de vida</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>891.22</td><td></td><td>891.22</td>
+          </tr>
+          
+          <tr>
+            <td>UNICOOP </td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>22728.9</td><td>21368.8</td><td>22728.9</td>
+          </tr>
+          
+          <tr>
+            <td>SATENPE (ACORDO)</td><td>Pagar atrasados 3836,40</td><td></td><td>726</td><td>819.72</td><td>819.72</td><td>819.72</td><td>819.72</td><td>819.72</td><td>3836.4</td><td>819.72</td><td>9480.72</td>
+          </tr>
+          
+          <tr>
+            <td>SINDHOSPE </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Folha de Pagamento</td><td></td><td>0</td><td>726</td><td>819.72</td><td>819.72</td><td>819.72</td><td>819.72</td><td>819.72</td><td>218066.06</td><td></td><td>223710.38</td>
+          </tr>
+          
+          <tr>
+            <td>DESPESAS ADMINISTRATIVAS</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>CIEE</td><td>comp. 07 /2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>198.86</td><td>198.86</td><td>198.86</td>
+          </tr>
+          
+          <tr>
+            <td>Claro </td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>7</td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Conecta Ponto</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>637.21</td><td>613.18</td><td>637.21</td>
+          </tr>
+          
+          <tr>
+            <td>MILPRINT</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>900</td><td>900</td><td>900</td>
+          </tr>
+          
+          <tr>
+            <td>Nephrosys</td><td>Ccomp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>2168.89</td><td>2168.89</td><td>2168.89</td>
+          </tr>
+          
+          <tr>
+            <td>Omie - SOS </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Omie - LEAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>134.2</td><td></td><td>134.2</td>
+          </tr>
+          
+          <tr>
+            <td>Oxente Net - F5 Soluçoes </td><td>Comp.07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>199</td><td>199</td><td>199</td>
+          </tr>
+          
+          <tr>
+            <td>Sindhosp </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Vip Informática</td><td>Parcela 8/10 parce. 01/03 venc 15/06 15/07 e 15/08)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>194.49</td><td>194.49</td><td>194.49</td>
+          </tr>
+          
+          <tr>
+            <td>CREMEPE</td><td>TAXA</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>163</td><td></td><td>163</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Despesas Administrativas</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4432.65</td><td></td><td>4432.65</td>
+          </tr>
+          
+          <tr>
+            <td>SERVIÇOS UNIMED</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>Unimed Plano de Saúde SOS + Leal - Mensalidade</td><td>Vencimento dia 25</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>24662.3</td><td>24662.3</td><td>24662.3</td>
+          </tr>
+          
+          <tr>
+            <td>Unimed Plano de Saúde Angela</td><td>Vencimento dia 25</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1158.49</td><td>1158.49</td><td>1158.49</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Serviços Unimed</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>25820.79</td><td></td><td>25820.79</td>
+          </tr>
+          
+          <tr>
+            <td>ÁGUA/ENERGIA</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>CELPE  </td><td></td><td></td><td></td><td> </td><td></td><td></td><td></td><td></td><td>36358.03</td><td>34802.02</td><td>36358.03</td>
+          </tr>
+          
+          <tr>
+            <td>CELPE - Casa</td><td>Comp. 04, 05 e 06/2025</td><td>pagar os amarelos </td><td></td><td></td><td></td><td>2090.63</td><td>2607.67</td><td>1907.81</td><td>2129.34</td><td></td><td>8735.45</td>
+          </tr>
+          
+          <tr>
+            <td>Compesa</td><td>Comp. 12/2024, 01,02,03,04 e 05/2025</td><td>1652.42</td><td>2717.4</td><td>880.54</td><td>1167.72</td><td>1292.15</td><td>1583.71</td><td></td><td></td><td>1656.31</td><td>10950.25</td>
+          </tr>
+          
+          <tr>
+            <td>Compesa  - Casa</td><td>Comp.04,05 e 06/2025</td><td></td><td></td><td></td><td></td><td>151.7</td><td>166.55</td><td>166.85</td><td>26.87</td><td></td><td>511.97</td>
+          </tr>
+          
+          <tr>
+            <td>Compesa  - Galpao </td><td>Comp. 03/2025</td><td></td><td></td><td></td><td>142.9</td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Água/Enegia</td><td></td><td>1652.42</td><td>2717.4</td><td>880.54</td><td>1310.62</td><td>1443.85</td><td>1750.26</td><td>166.85</td><td>36384.9</td><td></td><td>47820.25</td>
+          </tr>
+          
+          <tr>
+            <td>IMPOSTOS SOS - MENSAL</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>ISS - Tomador</td><td>Comp. 06/2025 (Venc. 10/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>507.26</td><td>303.1</td><td>507.26</td>
+          </tr>
+          
+          <tr>
+            <td>FGTS - SOS / nephro</td><td></td><td></td><td></td><td>4228.76</td><td>7303.22</td><td></td><td></td><td></td><td>15453</td><td></td><td>26984.98</td>
+          </tr>
+          
+          <tr>
+            <td>INSS - SOS / nephro</td><td></td><td></td><td></td><td>19517.37</td><td>33707.16</td><td></td><td></td><td></td><td>16800.49</td><td></td><td>70025.02</td>
+          </tr>
+          
+          <tr>
+            <td>FGTS -LEAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>363.21</td><td>349.04</td><td>349.04</td><td>712.25</td>
+          </tr>
+          
+          <tr>
+            <td>INSS - LEAL</td><td></td><td></td><td></td><td></td><td>3583.63</td><td></td><td></td><td>1601.13</td><td>1538.22</td><td>1538.22</td><td>8261.2</td>
+          </tr>
+          
+          <tr>
+            <td>FGTS - SOS</td><td>atrasados</td><td></td><td></td><td></td><td>12286.86</td><td></td><td>47501.73</td><td></td><td></td><td></td><td>59788.59</td>
+          </tr>
+          
+          <tr>
+            <td>INSS - SOS</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>FGTS Rescisorio Angela Sampaio</td><td>R$ 100.000,00 Entrada 30.000,00 (5parc. 14.000,00)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>14000</td><td>14000</td><td>14000</td>
+          </tr>
+          
+          <tr>
+            <td>FGTS  de Angela </td><td>(Venc. 18/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>6470.72</td><td></td><td>6470.72</td>
+          </tr>
+          
+          <tr>
+            <td>RECEITA FEDERAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>36180.92</td><td></td><td>36180.92</td>
+          </tr>
+          
+          <tr>
+            <td>RECEITA FEDERAL Parc.</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>3215.93</td><td></td><td>3215.93</td>
+          </tr>
+          
+          <tr>
+            <td>RECEITA FEDERAL  Parc.</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>3215.93</td><td></td><td>3215.93</td>
+          </tr>
+          
+          <tr>
+            <td>DARF</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>967.51</td><td></td><td>967.51</td>
+          </tr>
+          
+          <tr>
+            <td>PREF</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Darf</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>967.51</td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Prefeitura </td><td>Parcela 23/110</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>40699.76</td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>PGFN - Receita </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>101294.08</td><td>96357.44</td><td></td>
+          </tr>
+          
+          <tr>
+            <td>PGFN - Receita </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>133508.29</td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>PGFN - Receita </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>3215.93</td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Impostos SOS Mensal</td><td></td><td>0</td><td>0</td><td>23746.13</td><td>56880.87</td><td>0</td><td>47501.73</td><td>1964.34</td><td>230330.31</td><td></td><td>230330.31</td>
+          </tr>
+          
+          <tr>
+            <td>ALUGUÉIS</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>Amancio - Ademário</td><td>comp. 07/2025 (Venc. 20 cadfa)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>2935</td><td>2935</td><td>2935</td>
+          </tr>
+          
+          <tr>
+            <td>Jose Alves/ Maria Amelia e Julia Ribeiro</td><td>comp 07/2025 ( Venc. 09 cada)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>23000</td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Marcos Alves</td><td>Atrasado desde 03/2024</td><td>45000</td><td>5500</td><td>5500</td><td>5500</td><td>5500</td><td></td><td></td><td>5500</td><td>5500</td><td>78000</td>
+          </tr>
+          
+          <tr>
+            <td>TC Empreendimentos</td><td>Alugueis comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>18345.52</td><td>18345.52</td><td>18345.52</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Aluguéis</td><td></td><td>45000</td><td>5500</td><td>5500</td><td>5500</td><td>5500</td><td>0</td><td>0</td><td>26780.52</td><td></td><td>99280.52</td>
+          </tr>
+          
+          <tr>
+            <td>TERCERIZADOS </td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>ADM - C. E. S Contabilidade</td><td>Comp. 01, 02, 03, 04, 05 E 07/2025</td><td></td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td></td><td>3636</td><td>3636</td><td>25452</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -  BOANERGES</td><td>Comp. 07 E 08/2025 (Venc. 20/08/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td>1200</td><td>1200</td><td>1200</td><td>2400</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -  SÃO GABRIEL DIAGNÓSTICOS</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -  SÃO GABRIEL REMOÇÃO</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>237.5</td><td>487.5</td><td>237.5</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -  SHOPPING FRIO</td><td>Comp. 04,05 06 e 07,08/2025</td><td></td><td></td><td></td><td></td><td>3770</td><td>3000</td><td>3000</td><td>3000</td><td>3000</td><td>15770</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -  SHOPPING FRIO EXTRA</td><td>EXTRA</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>160</td><td></td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - AQUALYSE</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>2276.32</td><td>2276.32</td><td>2276.32</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - AQUALYSE analise extra</td><td>Comp. 06/2025 (venc. 25/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>355.74</td><td>0</td><td>355.74</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - BIOXXI</td><td>Comp. 01,02,03,04, 06E 07/2025</td><td>2833.28</td><td>2156.13</td><td>2711.88</td><td>1197.25</td><td>3225.59</td><td>1509.96</td><td></td><td>300</td><td>300</td><td>14234.09</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - CENTEC</td><td>Comp. 06/2025 (Venc. 20/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>575.88</td><td>575.88</td><td>575.88</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - CENTEC - Balança computadorizada</td><td>Parcela 03/05</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>178</td><td></td><td>178</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - DA FONTE</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>41400</td><td></td><td>41400</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - DIST. CUMMNINS - GERADOR DE ENERGIA</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>572.1</td><td>572.1</td><td>572.1</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - MANOEL QUIMICO</td><td>Comp. 05 e 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td>2000</td><td>2000</td><td>2000</td><td>4000</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO - VILLELA ADVOGADOS - Parcelamento</td><td>Parcela 2/10</td><td>10000</td><td>10000</td><td>10000</td><td>10000</td><td>10000</td><td>10000</td><td>10000</td><td>10000</td><td></td><td>80000</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -BRASCON</td><td>Comp. 06/2025 (Venc. 20/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>4466.89</td><td>4000.2</td><td>4466.89</td>
+          </tr>
+          
+          <tr>
+            <td>CONTRATO -CARLOS - Manutenção das Máquinas </td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>3000</td><td>3000</td><td>3000</td>
+          </tr>
+          
+          <tr>
+            <td>ISAIAS AUGUSTO/ICESOLDA</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>266</td><td>266</td><td>266</td>
+          </tr>
+          
+          <tr>
+            <td>HEMOLAIF</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1397.5</td><td></td><td></td><td>1397.5</td>
+          </tr>
+          
+          <tr>
+            <td>LABOC</td><td>Comp. 06 E 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>108.9</td><td>200.61</td><td>108.9</td>
+          </tr>
+          
+          <tr>
+            <td> LABORATORIO - PARDINI</td><td>Comp. 08/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>10000</td><td>10000</td><td>10000</td>
+          </tr>
+          
+          <tr>
+            <td>ME. SEG -  Segurança do Trabalho (LEAL)</td><td>ACORDO ENTRADA 10.000,00 E 1.500,00 MENSAL</td><td>5000</td><td>500</td><td>500</td><td>500</td><td>500</td><td>500</td><td>500</td><td></td><td></td><td>8000</td>
+          </tr>
+          
+          <tr>
+            <td>ME. SEG -  Segurança do Trabalho (SOS)</td><td>ACORDO ENTRADA 10.000,00 E 1.500,00 MENSAL</td><td>28800</td><td>2400</td><td>2400</td><td>2400</td><td>2400</td><td>2400</td><td>2400</td><td>2400</td><td></td><td>45600</td>
+          </tr>
+          
+          <tr>
+            <td>RDEZOITO - TI</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>2500</td><td></td><td>2500</td>
+          </tr>
+          
+          <tr>
+            <td>TORRES E ANDRADE - Advogados</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>4000</td><td>3600</td><td>4000</td>
+          </tr>
+          
+          <tr>
+            <td>WILLIAM BRUNO - ASSISTENCIA TEC. Reprocessadora</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>500</td><td>1000</td><td>500</td>
+          </tr>
+          
+          <tr>
+            <td>Grupo SEG - VFS Sistema </td><td>Comp. 08/2025</td><td></td><td></td><td></td><td></td><td></td><td>1428.14</td><td>690.24</td><td>628</td><td>628</td><td>2746.38</td>
+          </tr>
+          
+          <tr>
+            <td>Angela Sampaio - Acordo</td><td>Parcela </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Alfa saude Ambiental - Dedetizaçao Mensal</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>301.35</td><td>301.35</td><td>301.35</td><td>602.7</td>
+          </tr>
+          
+          <tr>
+            <td>Jonattan </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Claudia Clemente</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>563.55</td><td></td><td>563.55</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Tercerizados</td><td></td><td>46633.28</td><td>18692.13</td><td>19247.88</td><td>17733.25</td><td>23531.59</td><td>22474.1</td><td>21489.09</td><td>94466.23</td><td></td><td>271203.55</td>
+          </tr>
+          
+          <tr>
+            <td>MATERIAIS DA FARMÁCIA</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>BIOCOMPANY</td><td>(venc.  06/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>4725</td><td></td><td>4725</td>
+          </tr>
+          
+          <tr>
+            <td>CRISTALIA </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>DIALISE COMERCIO</td><td>(venc. 28/03/2025, 31/03/2025, 28/04/25, 14/05/25) </td><td></td><td></td><td></td><td>19860</td><td>18650</td><td>7656</td><td></td><td></td><td></td><td>46166</td>
+          </tr>
+          
+          <tr>
+            <td>MEDCORP</td><td>(venc.  05e 26 /05/2025 e 27/06/2025)</td><td></td><td></td><td></td><td></td><td>15328.8</td><td>18164.6</td><td>8779.8</td><td></td><td></td><td>42273.2</td>
+          </tr>
+          
+          <tr>
+            <td>MED E FARMA</td><td>(venc. 24 e 26/03/2025, 02/06/2025)</td><td></td><td></td><td></td><td>5982.36</td><td></td><td></td><td>15692.45</td><td>15692.45</td><td></td><td>37367.26</td>
+          </tr>
+          
+          <tr>
+            <td>MEIRELLES</td><td> (Venc. 10,13,25/05/2025, 09 e 24/06/2025)</td><td></td><td></td><td></td><td></td><td></td><td>21407.11</td><td>7635.63</td><td></td><td></td><td>29042.74</td>
+          </tr>
+          
+          <tr>
+            <td>OMNIEL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>SIX Dist.</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>DISTRIBUIDORA DE MED.</td><td> (venc.17e28/05),(venc.15/06/2025)</td><td></td><td></td><td></td><td></td><td></td><td>22982.63</td><td>8325</td><td></td><td></td><td>31307.63</td>
+          </tr>
+          
+          <tr>
+            <td>GLOBAL - PAULO</td><td>Heparinas</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>6300</td><td></td><td>6300</td>
+          </tr>
+          
+          <tr>
+            <td>GLOBAL - PAULO</td><td>Heparinas</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>6000</td><td></td><td>6000</td>
+          </tr>
+          
+          <tr>
+            <td>GLOBAL - PAULO</td><td>Heparinas</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>3600</td><td></td><td>3600</td>
+          </tr>
+          
+          <tr>
+            <td>A FORMULA - ADVAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1104</td><td></td><td>1104</td>
+          </tr>
+          
+          <tr>
+            <td>COMPRA DE MATERIAIS</td><td>Comp. 07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Materiais da Farmácia</td><td></td><td>0</td><td>0</td><td>0</td><td>25842.36</td><td>33978.8</td><td>70210.34</td><td>40432.88</td><td>62900.16</td><td></td><td>207885.83</td>
+          </tr>
+          
+          <tr>
+            <td>MATERIAIS DA FARMÁCIA COMPRADOS NEPHRONCARE</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>Ultramega </td><td>NF 253860, 54620 (Venc. 09, 24 /07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>30724.74</td><td></td><td>30724.74</td>
+          </tr>
+          
+          <tr>
+            <td>Bramed</td><td>NF 25987, 26014 (Venc. 09, 13 /07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>15475.5</td><td></td><td>15475.5</td>
+          </tr>
+          
+          <tr>
+            <td>Dialise</td><td>NF 11881, 9836 (Venc. 09, 10 /07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>30908.8</td><td></td><td>30908.8</td>
+          </tr>
+          
+          <tr>
+            <td>Cristalia</td><td>NF 712112 (Venc. 23/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>12750</td><td></td><td>12750</td>
+          </tr>
+          
+          <tr>
+            <td>Distruidora de Med.</td><td>NF 634  (Venc. 04, 19 /07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>24423.34</td><td></td><td>24423.34</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Framaceuticos pela Nephroncare</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>114282.38</td><td></td><td>114282.38</td>
+          </tr>
+          
+          <tr>
+            <td>MANUTENÇÃO DE IMOBILIZADOS </td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>NEFROFLOW (8 MÁQ. NIPRO)</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>6000</td><td></td><td>6000</td>
+          </tr>
+          
+          <tr>
+            <td>DSL EQUIPAMENTOS (2 MÁQ. V10) - DANIEL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>4100</td><td>4100</td><td>4100</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Materiais De Limpeza e Manutenção</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10100</td><td></td><td>10100</td>
+          </tr>
+          
+          <tr>
+            <td>MATERIAIS DE LIMPEZA  E MANUTENÇÃO</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>LL Comercio</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>DISPHEL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>SMART CLEAN</td><td>(VENC.09,25/06/25) (VENC10 e 11/07/2025)</td><td></td><td></td><td></td><td></td><td></td><td></td><td>10507.42</td><td>11196.12</td><td>6347.31</td><td>21703.54</td>
+          </tr>
+          
+          <tr>
+            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Materiais De Limpeza e Manutenção</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10507.42</td><td>11196.12</td><td></td><td>21703.54</td>
+          </tr>
+          
+          <tr>
+            <td>COPA E COZINHA</td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>XERÉM</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Com. Monte Carmelo - GAS </td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>850</td><td>850</td><td>850</td>
+          </tr>
+          
+          <tr>
+            <td>SACOLÃO </td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1510.39</td><td>1805.46</td><td>1510.39</td>
+          </tr>
+          
+          <tr>
+            <td>GRANJA ALIANÇA</td><td>Comp. 06/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>357</td><td>642</td><td>357</td>
+          </tr>
+          
+          <tr>
+            <td>Atacarejo</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>1933</td><td></td><td>1933</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Copa e Cozinha</td><td></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4650.39</td><td></td><td>4650.39</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - CONTAS A PAGAR</td><td></td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td>01/08/2025 00:00</td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td></td><td></td><td>93285.7</td><td>27635.53</td><td>51074.81</td><td>108086.82</td><td>65273.96</td><td>142756.15</td><td>183552.55</td><td>1156668.73</td><td></td><td>1813532.5</td>
+          </tr>
+          
+          <tr>
+            <td>Entradas  01/07/2025</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>ENTRADAS SUS - COMPL. 05/2025</td><td>10617.83</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>ENTRADAS  SUS - COMPL. 05/2025</td><td>2167.09</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>ENTRADAS  SUS - COMPL. 05/2025</td><td>304958.33</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>NF  SUS - 06/2025</td><td>905585.44</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL ENTRADAS </td><td>1223328.69</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td></td><td>01/07/2025 00:00</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL ENTRADA </td><td></td><td>1223328.69</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL DESPESAS </td><td></td><td>1156668.73</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>SOBRAS </td><td></td><td>66659.96</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Aportes Dra Aniedja </td><td>18250</td><td>pagto impostos </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Aportes Dra Lúcia</td><td>18250</td><td>pagto impostos </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>transferencia entre contas sos deve nephro</td><td>25572.2</td><td>VR feira, Vale trans. Etc</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Bioxxi parte SOS</td><td>825.56</td><td>pagto pela nephro</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Dra Aniedja Aporte </td><td>7800</td><td>Manut. Carro, Comercial JR, Gesseiro </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>Bancos</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>caixa</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>nordeste</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>cora</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          
+          <tr>
+            <td>PARCELAMENTOS - IMPOSTOS </td><td>Observações</td><td>Atrasados</td><td>01/01/2025 00:00</td><td>01/02/2025 00:00</td><td>01/03/2025 00:00</td><td>01/04/2025 00:00</td><td>01/05/2025 00:00</td><td>01/06/2025 00:00</td><td>01/07/2025 00:00</td><td></td><td>Total </td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento Receita Federal</td><td>TODOS CAÍDOS </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento PGFN </td><td>TODOS CAÍDOS </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento PGFN </td><td>TODOS CAÍDOS </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento INSS</td><td>TODOS CAÍDOS </td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento FGTS</td><td>ATRASADO 11/2024 a 12/2024</td><td>10000</td><td>5000</td><td>5000</td><td>5000</td><td></td><td></td><td></td><td></td><td></td><td>25000</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento PGFN - LEAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Parcelamento PGFN - LEAL</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>Prefeitura Municipal de Caruaru - ISS</td><td>Atrasado desde 09/2024 a 12/2024</td><td>176000</td><td>42000</td><td>42000</td><td>42000</td><td></td><td></td><td></td><td></td><td></td><td>302000</td>
+          </tr>
+          
+          <tr>
+            <td>Prefeitura Municipal de Caruaru - ISS - Honorários </td><td>Atrasado desde 09/2024 a 12/2024</td><td>60000</td><td>14000</td><td>14000</td><td>14000</td><td></td><td></td><td></td><td></td><td></td><td>102000</td>
+          </tr>
+          
+          <tr>
+            <td>Prefeitura </td><td>2018 á 2022</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>0</td>
+          </tr>
+          
+          <tr>
+            <td>TOTAL - Impostos Parcelamentos</td><td></td><td>246000</td><td>61000</td><td>61000</td><td>61000</td><td>0</td><td>0</td><td>0</td><td>0</td><td></td><td>429000</td>
+          </tr>
+          
         </tbody>
       </table>
     </section>
     
     <section id="panel-1" class="sheet card " role="tabpanel" aria-labelledby="tab-1">
+      <div class="sheet-index" id="index-1"></div>
+      <div class="sheet-summary" id="summary-1"></div>
       <table id="table-1" class="display" style="width:100%">
         <thead>
           <tr>
@@ -282,7 +976,7 @@
           </tr>
           
           <tr>
-            <td></td><td>729106.44</td><td>SICRED</td><td>Parc. 43/60 (Venc. dia 25)</td><td>38374.44</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            <td></td><td>729106.44</td><td>SICRED</td><td>Parc. 43/60 (Venc. dia 25)</td><td>38374.44</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td>38374</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
           </tr>
           
           <tr>
@@ -322,7 +1016,7 @@
           </tr>
           
           <tr>
-            <td></td><td></td><td>C.E.S - Contador </td><td>Atarsados 01 á 05/2025</td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            <td></td><td></td><td>C.E.S - Contador </td><td>Atarsados 01 á 05/2025</td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td>3636</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
           </tr>
           
           <tr>
@@ -342,7 +1036,7 @@
           </tr>
           
           <tr>
-            <td></td><td>15000</td><td>ME. SEG -  Segurança do Trabalho (SOS/LEAL )</td><td>Parc. 01/10 (Venc. dia 30)</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            <td></td><td>15000</td><td>ME. SEG -  Segurança do Trabalho (SOS/LEAL )</td><td>Parc. 01/10 (Venc. dia 30)</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td>1500</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
           </tr>
           
           <tr>
@@ -378,6 +1072,8 @@
     </section>
     
     <section id="panel-2" class="sheet card " role="tabpanel" aria-labelledby="tab-2">
+      <div class="sheet-index" id="index-2"></div>
+      <div class="sheet-summary" id="summary-2"></div>
       <table id="table-2" class="display" style="width:100%">
         <thead>
           <tr>
@@ -1091,6 +1787,8 @@
     </section>
     
     <section id="panel-3" class="sheet card " role="tabpanel" aria-labelledby="tab-3">
+      <div class="sheet-index" id="index-3"></div>
+      <div class="sheet-summary" id="summary-3"></div>
       <table id="table-3" class="display" style="width:100%">
         <thead>
           <tr>
@@ -1205,6 +1903,8 @@
   </div>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/2.1.5/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.1/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.1/js/buttons.colVis.min.js"></script>
   <script>
     const tabButtons = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.sheet');
@@ -1228,10 +1928,12 @@
     function tryParseNumber(text) {
       const trimmed = text.trim();
       if (!trimmed) return null;
+      // Accept forms like 123, 123.45, 123456.78
       if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
         const n = Number(trimmed);
         return Number.isFinite(n) ? n : null;
       }
+      // Accept forms like 1.234.567,89 (convert to 1234567.89)
       if (/^-?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(trimmed)) {
         const normalized = trimmed.replaceAll('.', '').replace(',', '.');
         const n = Number(normalized);
@@ -1240,20 +1942,38 @@
       return null;
     }
 
-    function formatIfDateLike(text) {
+    function formatIfDateLikeBody(text) {
       const t = text.trim();
+      // YYYY-MM-DD ... -> DD/MM/YYYY
       let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+      // DD/MM/YYYY ... -> keep only date
       m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       if (m) return `${m[1]}/${m[2]}/${m[3]}`;
       return text;
     }
 
+    function formatIfDateLikeHeader(text) {
+      const t = text.trim();
+      // YYYY-MM-DD ... -> MMM/YY
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        const y = Number(m[1]);
+        const mo = Number(m[2]);
+        const date = new Date(y, mo - 1, 1);
+        return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '');
+      }
+      // DD/MM/YYYY -> keep DD/MM/YYYY
+      return t;
+    }
+
     function prepareTable(table) {
       if (!table) return;
+      // Format header dates
       table.querySelectorAll('thead th').forEach(th => {
-        th.textContent = formatIfDateLike(th.textContent);
+        th.textContent = formatIfDateLikeHeader(th.textContent);
       });
+      // Format numeric cells as BRL and set data-order for proper sorting
       table.querySelectorAll('tbody td').forEach(td => {
         const original = td.textContent;
         const n = tryParseNumber(original);
@@ -1261,25 +1981,119 @@
           td.setAttribute('data-order', String(n));
           td.textContent = formatCurrencyBR(n);
         } else {
-          const maybeDate = formatIfDateLike(original);
+          const maybeDate = formatIfDateLikeBody(original);
           if (maybeDate !== original) td.textContent = maybeDate;
         }
       });
+    }
+
+    function classifyRowsAndBuildIndex(table, sheetIdx) {
+      const indexEl = document.getElementById('index-' + sheetIdx);
+      const summaryEl = document.getElementById('summary-' + sheetIdx);
+      if (!table || !indexEl || !summaryEl) return;
+
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim().toLowerCase());
+      const totalIndices = headers
+        .map((h, i) => ({ i, key: h.replace(/\s+/g, '') }))
+        .filter(x => x.key.includes('total'))
+        .map(x => x.i);
+      const totalColIdx = totalIndices.length ? totalIndices[totalIndices.length - 1] : -1;
+      const sections = [];
+
+      const firstCellText = (tr) => (tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '');
+
+      table.querySelectorAll('tbody tr').forEach((tr, idx) => {
+        const label = firstCellText(tr);
+        const isAllCaps = label && label === label.toUpperCase() && label.length >= 6;
+        const isSection = isAllCaps && !label.startsWith('TOTAL');
+        const isTotal = /^total\b/i.test(label) || /\btotal\b/i.test(label);
+        if (isSection) {
+          tr.classList.add('section-header');
+          sections.push({ label, rowIdx: idx });
+        }
+        if (isTotal) {
+          tr.classList.add('total-row');
+        }
+
+        // Badges for status words
+        tr.querySelectorAll('td').forEach(td => {
+          const t = td.textContent.trim().toUpperCase();
+          if (t === 'PAGO') td.innerHTML = '<span class="badge paid">PAGO</span>';
+          if (t === 'ATRASADO' || t === 'ATRASADOS') td.innerHTML = '<span class="badge overdue">ATRAS.</span>';
+        });
+      });
+
+      // Section chips (scroll to section)
+      indexEl.innerHTML = '';
+      sections.forEach(sec => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = sec.label;
+        chip.addEventListener('click', () => {
+          const bodyRows = table.tBodies[0].rows;
+          const target = bodyRows[sec.rowIdx];
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            target.classList.add('row-flash');
+            setTimeout(() => target.classList.remove('row-flash'), 2500);
+          }
+        });
+        indexEl.appendChild(chip);
+      });
+
+      // Summary pills from TOTAL rows, using Total column if present
+      summaryEl.innerHTML = '';
+      if (totalColIdx >= 0) {
+        table.querySelectorAll('tbody tr.total-row').forEach(tr => {
+          const label = firstCellText(tr).replace(/^TOTAL\s*-?\s*/i, '').trim() || 'Total';
+          const cells = tr.querySelectorAll('td');
+          const valCell = cells[totalColIdx];
+          if (!valCell) return;
+          const raw = valCell.getAttribute('data-order') || valCell.textContent;
+          const num = tryParseNumber(raw) ?? tryParseNumber(valCell.textContent) ?? null;
+          const pill = document.createElement('div');
+          pill.className = 'pill';
+          const dot = document.createElement('span');
+          dot.className = 'dot';
+          const text = document.createElement('span');
+          text.textContent = `${label}: ${num !== null ? formatCurrencyBR(num) : valCell.textContent.trim()}`;
+          pill.appendChild(dot);
+          pill.appendChild(text);
+          summaryEl.appendChild(pill);
+        });
+      }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelectorAll('table.display').forEach((tbl) => {
         prepareTable(tbl);
       });
+
+      // Initialize DataTables after formatting
       document.querySelectorAll('table.display').forEach((tbl) => {
-        new DataTable(tbl, {
+        const dt = new DataTable(tbl, {
           pageLength: 25,
           lengthMenu: [10, 25, 50, 100],
           ordering: true,
           searching: true,
           deferRender: true,
-          language: { url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json' },
+          scrollX: true,
+          language: {
+            url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json',
+            searchPlaceholder: 'Pesquisar nesta aba',
+          },
+          dom: '<"top"lfB>rt<"bottom"ip>',
+          buttons: [
+            {
+              extend: 'colvis',
+              text: 'Mostrar/ocultar colunas',
+              className: 'dt-button',
+            },
+          ],
         });
+        // Build index and summary once table is in DOM
+        const id = tbl.id.split('-')[1];
+        classifyRowsAndBuildIndex(tbl, id);
       });
     });
   </script>

@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.datatables.net/2.1.5/css/dataTables.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.1/css/buttons.dataTables.min.css" />
   <style>
-    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #22c55e; --card: #111827; --chip: #1f2937; }
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; --accent: #22c55e; --accent-2: #06b6d4; --danger: #ef4444; --card: #111827; --chip: #1f2937; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background: var(--bg); color: var(--fg); }
     header { padding: 24px 20px 8px; }
@@ -22,11 +23,36 @@
     .card { background: var(--card); border: 1px solid #2a364a; border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
     .sheet { display: none; }
     .sheet.active { display: block; }
+    .sheet-index { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+    .sheet-index .chip { background: var(--chip); border: 1px solid #2a364a; color: var(--fg); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+    .sheet-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+    .sheet-summary .pill { display: inline-flex; align-items: center; gap: 6px; background: #0b1220; border: 1px solid #2a364a; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+    .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); }
+
     table.dataTable thead th { background: color-mix(in oklab, var(--accent) 25%, #0b3d2c); color: #ecfdf5; border-bottom: none; }
     table.dataTable tbody tr:hover { background: color-mix(in oklab, var(--accent) 20%, transparent); }
     .dt-search input { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
     .dt-length select { background: #0b1220; color: var(--fg); border: 1px solid #2a364a; }
     .footer { color: var(--muted); font-size: 12px; padding: 16px 20px 40px; }
+
+    /* Primeira coluna fixa (sticky) */
+    table.dataTable thead th:first-child, table.dataTable tbody td:first-child { position: sticky; left: 0; background: var(--card); z-index: 2; }
+    table.dataTable thead th:first-child { z-index: 3; }
+
+    /* Destaques de linhas/valores especiais */
+    tr.section-header td { background: #0b1b2f; color: #93c5fd; font-weight: 600; border-top: 1px solid #1e293b; }
+    tr.total-row td { background: #0f2f25; color: #a7f3d0; font-weight: 700; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.paid { background: rgba(34,197,94,.15); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+    .badge.overdue { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.35); }
+
+    /* DataTables ajustes de layout */
+    div.dt-container { overflow-x: auto; }
+
+    /* Destaque ao navegar pelo índice */
+    .row-flash { outline: 2px solid var(--accent-2); box-shadow: 0 0 0 2px rgba(6,182,212,0.2) inset; }
+    @keyframes flashFade { from { background: rgba(6,182,212,0.1); } to { background: transparent; } }
+    .row-flash { animation: flashFade 2.2s ease-out; }
   </style>
 </head>
 <body>
@@ -42,6 +68,8 @@
   <div class="container">
     {% for sheet in sheets %}
     <section id="panel-{{ loop.index0 }}" class="sheet card {{ 'active' if loop.first else '' }}" role="tabpanel" aria-labelledby="tab-{{ loop.index0 }}">
+      <div class="sheet-index" id="index-{{ loop.index0 }}"></div>
+      <div class="sheet-summary" id="summary-{{ loop.index0 }}"></div>
       <table id="table-{{ loop.index0 }}" class="display" style="width:100%">
         <thead>
           <tr>
@@ -64,6 +92,8 @@
   </div>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/2.1.5/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.1/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.1/js/buttons.colVis.min.js"></script>
   <script>
     const tabButtons = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.sheet');
@@ -101,7 +131,7 @@
       return null;
     }
 
-    function formatIfDateLike(text) {
+    function formatIfDateLikeBody(text) {
       const t = text.trim();
       // YYYY-MM-DD ... -> DD/MM/YYYY
       let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -112,11 +142,25 @@
       return text;
     }
 
+    function formatIfDateLikeHeader(text) {
+      const t = text.trim();
+      // YYYY-MM-DD ... -> MMM/YY
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) {
+        const y = Number(m[1]);
+        const mo = Number(m[2]);
+        const date = new Date(y, mo - 1, 1);
+        return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '');
+      }
+      // DD/MM/YYYY -> keep DD/MM/YYYY
+      return t;
+    }
+
     function prepareTable(table) {
       if (!table) return;
       // Format header dates
       table.querySelectorAll('thead th').forEach(th => {
-        th.textContent = formatIfDateLike(th.textContent);
+        th.textContent = formatIfDateLikeHeader(th.textContent);
       });
       // Format numeric cells as BRL and set data-order for proper sorting
       table.querySelectorAll('tbody td').forEach(td => {
@@ -126,27 +170,119 @@
           td.setAttribute('data-order', String(n));
           td.textContent = formatCurrencyBR(n);
         } else {
-          // Also format any pure date strings inside body cells
-          const maybeDate = formatIfDateLike(original);
+          const maybeDate = formatIfDateLikeBody(original);
           if (maybeDate !== original) td.textContent = maybeDate;
         }
       });
+    }
+
+    function classifyRowsAndBuildIndex(table, sheetIdx) {
+      const indexEl = document.getElementById('index-' + sheetIdx);
+      const summaryEl = document.getElementById('summary-' + sheetIdx);
+      if (!table || !indexEl || !summaryEl) return;
+
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim().toLowerCase());
+      const totalIndices = headers
+        .map((h, i) => ({ i, key: h.replace(/\s+/g, '') }))
+        .filter(x => x.key.includes('total'))
+        .map(x => x.i);
+      const totalColIdx = totalIndices.length ? totalIndices[totalIndices.length - 1] : -1;
+      const sections = [];
+
+      const firstCellText = (tr) => (tr.querySelector('td') ? tr.querySelector('td').textContent.trim() : '');
+
+      table.querySelectorAll('tbody tr').forEach((tr, idx) => {
+        const label = firstCellText(tr);
+        const isAllCaps = label && label === label.toUpperCase() && label.length >= 6;
+        const isSection = isAllCaps && !label.startsWith('TOTAL');
+        const isTotal = /^total\b/i.test(label) || /\btotal\b/i.test(label);
+        if (isSection) {
+          tr.classList.add('section-header');
+          sections.push({ label, rowIdx: idx });
+        }
+        if (isTotal) {
+          tr.classList.add('total-row');
+        }
+
+        // Badges for status words
+        tr.querySelectorAll('td').forEach(td => {
+          const t = td.textContent.trim().toUpperCase();
+          if (t === 'PAGO') td.innerHTML = '<span class="badge paid">PAGO</span>';
+          if (t === 'ATRASADO' || t === 'ATRASADOS') td.innerHTML = '<span class="badge overdue">ATRAS.</span>';
+        });
+      });
+
+      // Section chips (scroll to section)
+      indexEl.innerHTML = '';
+      sections.forEach(sec => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = sec.label;
+        chip.addEventListener('click', () => {
+          const bodyRows = table.tBodies[0].rows;
+          const target = bodyRows[sec.rowIdx];
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            target.classList.add('row-flash');
+            setTimeout(() => target.classList.remove('row-flash'), 2500);
+          }
+        });
+        indexEl.appendChild(chip);
+      });
+
+      // Summary pills from TOTAL rows, using Total column if present
+      summaryEl.innerHTML = '';
+      if (totalColIdx >= 0) {
+        table.querySelectorAll('tbody tr.total-row').forEach(tr => {
+          const label = firstCellText(tr).replace(/^TOTAL\s*-?\s*/i, '').trim() || 'Total';
+          const cells = tr.querySelectorAll('td');
+          const valCell = cells[totalColIdx];
+          if (!valCell) return;
+          const raw = valCell.getAttribute('data-order') || valCell.textContent;
+          const num = tryParseNumber(raw) ?? tryParseNumber(valCell.textContent) ?? null;
+          const pill = document.createElement('div');
+          pill.className = 'pill';
+          const dot = document.createElement('span');
+          dot.className = 'dot';
+          const text = document.createElement('span');
+          text.textContent = `${label}: ${num !== null ? formatCurrencyBR(num) : valCell.textContent.trim()}`;
+          pill.appendChild(dot);
+          pill.appendChild(text);
+          summaryEl.appendChild(pill);
+        });
+      }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
       document.querySelectorAll('table.display').forEach((tbl) => {
         prepareTable(tbl);
       });
+
       // Initialize DataTables after formatting
       document.querySelectorAll('table.display').forEach((tbl) => {
-        new DataTable(tbl, {
+        const dt = new DataTable(tbl, {
           pageLength: 25,
           lengthMenu: [10, 25, 50, 100],
           ordering: true,
           searching: true,
           deferRender: true,
-          language: { url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json' },
+          scrollX: true,
+          language: {
+            url: 'https://cdn.datatables.net/plug-ins/2.1.5/i18n/pt-BR.json',
+            searchPlaceholder: 'Pesquisar nesta aba',
+          },
+          dom: '<"top"lfB>rt<"bottom"ip>',
+          buttons: [
+            {
+              extend: 'colvis',
+              text: 'Mostrar/ocultar colunas',
+              className: 'dt-button',
+            },
+          ],
         });
+        // Build index and summary once table is in DOM
+        const id = tbl.id.split('-')[1];
+        classifyRowsAndBuildIndex(tbl, id);
       });
     });
   </script>
